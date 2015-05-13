@@ -15,20 +15,20 @@
 #import "mainMenu.h"
 #import "WebViewController.h"
 #import "MoreItemsViewController.h"
-
+#import "Utilities.h"
+#import "BDKCollectionIndexView.h"
+#import "FloatingHeaderFlowLayout.h"
 
 @class NowPlaying;
 @class PlayFileViewController;
 //@class DetailViewController;
 
-@interface DetailViewController : UIViewController <UITableViewDataSource, UITableViewDelegate, UIActionSheetDelegate, UISearchBarDelegate>{
+@interface DetailViewController : UIViewController <UITableViewDataSource, UITableViewDelegate, UIActionSheetDelegate, UISearchBarDelegate, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>{
     IBOutlet UITableView *dataList;
     IBOutlet jsonDataCell *jsonCell;
     DSJSONRPC *jsonRPC;
-    NSMutableArray *richResults;
     NSMutableArray	*filteredListContent;
     NSMutableArray *storeRichResults;
-    NSMutableArray *extraSectionRichResults;
     IBOutlet UIActivityIndicatorView *activityIndicatorView;
     NSMutableDictionary *sections;  
     SDWebImageManager *manager;
@@ -67,6 +67,7 @@
     int flagY;
     BOOL albumView;
     BOOL episodesView;
+    BOOL tvshowsView;
     int albumViewHeight;
     int albumViewPadding;
     int artistFontSize;
@@ -74,27 +75,50 @@
     int trackCountFontSize;
     int trackCountLabelWidth;
     int labelPadding;
-    float thumbBorderWidth;
-    NSArray *sectionArray;
-    NSMutableArray *sectionArrayOpen;
+    UIColor *albumColor;
+    UIColor *searchBarColor;
+    UIColor *tableViewSearchBarColor;
+    UIColor *collectionViewSearchBarColor;
+    BOOL enableBarColor;
+    Utilities *utils;
+    UICollectionView *collectionView;
+    BOOL enableCollectionView;
+    int cellGridWidth;
+    int cellGridHeight;
+    int cellMinimumLineSpacing;
+    id activeLayoutView;
+    UILongPressGestureRecognizer *longPressGesture;
+    int posterFontSize;
+    int fanartFontSize;
+    FloatingHeaderFlowLayout *flowLayout;
+    //  EXPERIMENTAL CODE
+    NSMutableArray *darkCells;
+    BOOL autoScroll;
+    // END EXPERIMENTAL CODE
+    UIView *sectionNameOverlayView;
+    UILabel *sectionNameLabel;
+    BOOL recentlyAddedView;
+    BOOL enableDiskCache;
+    BOOL blackTableSeparator;
+    NSString *currentCollectionViewName;
 }
 
 - (id)initWithFrame:(CGRect)frame;
 - (id)initWithNibName:(NSString *)nibNameOrNil withItem:(mainMenu *)item withFrame:(CGRect)frame bundle:(NSBundle *)nibBundleOrNil;
 
-//@property (nonatomic, retain) NSMutableArray *richResults;
 @property (nonatomic, retain) NSMutableArray *filteredListContent;
-
 @property (strong, nonatomic) id detailItem;
 @property(nonatomic,readonly) UIActivityIndicatorView *activityIndicatorView;
 @property (strong, nonatomic) ShowInfoViewController *showInfoViewController;
-
 @property (strong, nonatomic) DetailViewController *detailViewController;
 @property (strong, nonatomic) NowPlaying *nowPlaying;
 @property (strong, nonatomic) PlayFileViewController *playFileViewController;
 @property (strong, nonatomic) WebViewController *webViewController;
-
-
+@property (strong, nonatomic) BDKCollectionIndexView *indexView;
 @property (nonatomic,retain) NSMutableDictionary *sections;
+@property (nonatomic,retain) NSMutableArray *richResults;
+@property (nonatomic,retain) NSArray *sectionArray;
+@property (nonatomic,retain) NSMutableArray *sectionArrayOpen;
+@property (nonatomic,retain) NSMutableArray *extraSectionRichResults;
 
 @end

@@ -9,11 +9,12 @@
 #import <UIKit/UIKit.h>
 #import "DSJSONRPC.h"
 #import "JBKenBurnsView.h"
+//#import "UIImageView+WebCache.h"
 
 @class NowPlaying;
 @class DetailViewController;
 
-@interface ShowInfoViewController : UIViewController <UIScrollViewDelegate, UIActionSheetDelegate, KenBurnsViewDelegate>{
+@interface ShowInfoViewController : UIViewController <UIScrollViewDelegate, UIActionSheetDelegate, KenBurnsViewDelegate, UITableViewDataSource, UITableViewDelegate, UIWebViewDelegate>{
     IBOutlet UIImageView *coverView;
     IBOutlet UIImageView *starsView;
     IBOutlet UILabel *voteLabel;
@@ -63,6 +64,19 @@
     int clearLogoWidth;
     int clearLogoHeight;
     int clearlogoScrollViewY;
+    NSArray *cast;
+    int size;
+    int castWidth;
+    int castHeight;
+    int castFontSize;
+    int thumbWidth;
+    int tvshowHeight;
+    UITableView *actorsTable;
+    UIWebView *trailerView;
+    NSString *embedVideoURL;
+    UIActivityIndicatorView *embedVideoActivityIndicator;
+//    SDImageCache *imageCache;
+    NSString *embedVideo;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil withItem:(NSDictionary *)item withFrame:(CGRect)frame bundle:(NSBundle *)nibBundleOrNil;

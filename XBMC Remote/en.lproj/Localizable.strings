@@ -30,6 +30,7 @@
 "Music Videos" = "Music Videos";
 "Added Movies" = "Added Movies";
 "More (%d)" = "More (%d)";
+"Movie Sets" = "Movie Sets";
 
 "Albums" = "Albums";
 "Artists" = "Artists";
@@ -53,14 +54,20 @@
 "Pictures Addons" = "Pictures Addons";
 
 "Power off System" = "Power off System";
+"Power off" = "Power off";
 "Hibernate" = "Hibernate";
 "Suspend" = "Suspend";
 "Reboot" = "Reboot";
 "Quit XBMC application" = "Quit XBMC application";
 "Update Audio Library" = "Update Audio Library";
+"Update Audio" = "Update Audio";
 "Clean Audio Library" = "Clean Audio Library";
+"Clean Audio" = "Clean Audio";
 "Update Video Library" = "Update Video Library";
+"Update Video" = "Update Video";
 "Clean Video Library" = "Clean Video Library";
+"Clean Video" = "Clean Video";
+"Quit" = "Quit";
 
 "Keyboard" = "Keyboard";
 "Gesture Zone" = "Gesture Zone";
@@ -84,6 +91,8 @@
 "Episode Details" = "Episode Details";
 "TV Show Details" = "TV Show Details";
 "Music Video Details" = "Music Video Details";
+"Details" = "Details";
+"Play Trailer" = "Play Trailer";
 
 "Playlist" = "Playlist";
 "Nothing is playing" = "Nothing is playing";
@@ -98,6 +107,13 @@
 "Episodes: %@" = "Episodes: %@";
 "1 result" = "1 result";
 "%d results" = "%d results";
+"Music " = "Music ";
+"Video " = "Video ";
+"Songs" = "Songs";
+"Song" = "Song";
+"Mins." = "Mins.";
+"Min" = "Min";
+"Released %d" = "Released %d";
 
 "Clear Playlist" = "Clear Playlist";
 "No server MAC address defined" = "No server MAC address defined";
@@ -132,3 +148,48 @@
 "DESCRIPTION" = "DESCRIPTION";
 "STYLE" = "STYLE";
 "BORN / FORMED" = "BORN / FORMED";
+
+"codec" = "codec";
+"bit rate" = "bit rate";
+"sample rate" = "sample rate";
+"resolution" = "resolution";
+"aspect ratio" = "aspect ratio";
+"Subtitles not available" = "Subtitles not available";
+"Audiostream not available" = "Audiostream not available";
+"Audiostreams not available" = "Audiostreams not available";
+
+"LongDateTimeFormat" = "MMMM d, yyyy";
+"ShortDateTimeFormat" = "yyyy-MM-dd";
+"LocaleIdentifier" = "en_US";
+
+"No sever mac address definied" = "No sever mac address definied";
+"Yes" = "Yes";
+"No" = "No";
+"Authentication Failed" = "Authentication Failed";
+"Incorrect Username or Password.\nCheck your settings." = "Incorrect Username or Password.\nCheck your settings.";
+
+"WIKI_LANG" = "en";
+
+"vote" = "vote";
+"votes" = "votes";
+
+"Slide your finger up to adjust the scrubbing rate." = "Slide your finger up to adjust the scrubbing rate.";
+"Scrubbing 1" = "Hi-Speed Scrubbing";
+"Scrubbing 0.5" = "Half-Speed Scrubbing";
+"Scrubbing 0.25" = "Quarter-Speed Scrubbing";
+"Scrubbing 0.1" = "Fine Scrubbing";
+"Scrubbing 0.05" = "Very-Fine Scrubbing";
+"Scrubbing 0.025" = "Ultra-Fine Scrubbing";
+
+"Clearing app disk cache...\n\nPlease wait, since this may take a while" = "Clearing app disk cache...\n\nPlease wait, since this may take a while";
+"Pull to sync with XBMC..." = "Pull to sync with XBMC...";
+"Release to sync with XBMC..." = "Release to sync with XBMC...";
+"Syncing..." = "Syncing...";
+"Last sync" = "Last sync";
+"View: Wall" = "View: Wall";
+"View: List" = "View: List";
+"View: Fanart" = "View: Fanart";
+
+"Show Content" = "Show Content";
+"Play in party mode" = "Play in party mode";
+"Play in shuffle mode" = "Play in shuffle mode";

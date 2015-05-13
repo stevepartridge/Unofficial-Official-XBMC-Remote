@@ -19,6 +19,7 @@
 #import "ViewControllerIPad.h"
 #import "StackScrollViewController.h"
 #import "ShowInfoViewController.h"
+#import "OBSlider.h"
 
 @interface NowPlaying ()
 
@@ -325,6 +326,7 @@ float cellBarWidth=45;
 	UIImage *result = [UIImage imageWithCGImage:ref];
 	
 	CGContextRelease(bitmap);
+    CGColorSpaceRelease(colorSpace);
 	CGImageRelease(ref);
 	
 	return result;
@@ -374,6 +376,9 @@ int currentItemID;
 
 -(void)setCoverSize:(NSString *)type{
     NSString *jewelImg = @"";
+    float screenSize = [[UIScreen mainScreen ] bounds].size.height;
+    float originalSize = 465.0f;
+
     if ([type isEqualToString:@"song"]){
         jewelImg = @"jewel_cd.9.png";
         CGRect frame = thumbnailView.frame;
@@ -382,6 +387,9 @@ int currentItemID;
             frame.origin.y = 43;
             frame.size.width = 238;
             frame.size.height = 238;
+            if(screenSize >= 568){
+                frame.origin.y = frame.origin.y  + 36;
+            }
         }
         else {
             jewelImg=@"jewel_cd.9@2x.png";
@@ -409,7 +417,12 @@ int currentItemID;
             frame.origin.y = 39;
             frame.size.width = 172;
             frame.size.height = 248;
-            
+            if(screenSize >= 568 && [self enableJewelCases]){
+                frame.origin.x = frame.origin.x * (originalSize/screenSize);
+                frame.origin.y = frame.origin.y * (screenSize/originalSize);
+                frame.size.width = frame.size.width * (screenSize/originalSize);
+                frame.size.height = frame.size.height * (screenSize/originalSize);
+            }
         }
         else{
             jewelImg=@"jewel_dvd.9@2x.png";
@@ -437,6 +450,9 @@ int currentItemID;
             frame.origin.y = 78;
             frame.size.width = 280;
             frame.size.height = 158;
+            if(screenSize >= 568){
+                frame.origin.y = frame.origin.y  + 36;
+            }
         }
         else{
             jewelImg=@"jewel_tv.9@2x.png";
@@ -559,6 +575,18 @@ int currentItemID;
     [self showPlaylistTable];
 }
 
+-(void)setButtonImageAndStartDemo:(UIImage *)buttonImage{
+    if (nowPlayingHidden || startFlipDemo){
+        [playlistButton setImage:buttonImage forState:UIControlStateNormal];
+        [playlistButton setImage:buttonImage forState:UIControlStateHighlighted];
+        [playlistButton setImage:buttonImage forState:UIControlStateSelected];
+        if (startFlipDemo){
+            [NSTimer scheduledTimerWithTimeInterval:1.0f target:self selector:@selector(startFlipDemo) userInfo:nil repeats:NO];
+            startFlipDemo = NO;
+        }
+    }
+}
+
 -(void)getActivePlayers{
     [jsonRPC callMethod:@"Player.GetActivePlayers" withParameters:[NSDictionary dictionaryWithObjectsAndKeys:nil] withTimeout:2.0 onCompletion:^(NSString *methodName, NSInteger callId, id methodResult, DSJSONRPCError *methodError, NSError* error) {
         if (error==nil && methodError==nil){
@@ -635,61 +663,51 @@ int currentItemID;
                                  }
                                  NSString *thumbnailPath=[nowPlayingInfo objectForKey:@"thumbnail"];
                                  NSString *stringURL = [NSString stringWithFormat:@"http://%@%@", serverURL, [thumbnailPath stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]];
-                                 NSURL *imageUrl = [NSURL URLWithString: stringURL];
-                                 UIImage *cachedImage = [manager imageWithURL:imageUrl];
-                                 UIImage *buttonImage = [self resizeImage:[UIImage imageNamed:@"coverbox_back.png"] width:76 height:66 padding:10];
                                  if (![lastThumbnail isEqualToString:stringURL]){
-                                     if (cachedImage){
-                                         if (enableJewel){
-                                             thumbnailView.image=cachedImage;
-                                             buttonImage=[self resizeImage:cachedImage width:76 height:66 padding:10];
-                                             
+                                     [[SDImageCache sharedImageCache] queryDiskCacheForKey:stringURL done:^(UIImage *image, SDImageCacheType cacheType) {
+                                         UIImage *buttonImage = [self resizeImage:[UIImage imageNamed:@"coverbox_back.png"] width:76 height:66 padding:10];
+                                         if (image!=nil){
+                                             if (enableJewel){
+                                                 thumbnailView.image=image;
+                                                 buttonImage=[self resizeImage:[self imageWithBorderFromImage:image] width:76 height:66 padding:10];
+                                             }
+                                             else{
+                                                 jewelView.image=[self imageWithBorderFromImage:image];
+                                                 buttonImage=[self resizeImage:jewelView.image width:76 height:66 padding:10];
+                                             }
+                                             [self setButtonImageAndStartDemo:buttonImage];
                                          }
                                          else{
-                                             jewelView.image=[self imageWithBorderFromImage:cachedImage];
-                                             buttonImage=[self resizeImage:jewelView.image width:76 height:66 padding:10];
+                                             if ([thumbnailPath isEqualToString:@""]){
+                                                 UIImage *buttonImage = [self resizeImage:[UIImage imageNamed:@"coverbox_back.png"] width:76 height:66 padding:10];
+                                                 [self setButtonImageAndStartDemo:buttonImage];
+                                             }
+                                             __weak NowPlaying *sf = self;
+                                                 if (enableJewel){
+                                                     [thumbnailView setImageWithURL:[NSURL URLWithString:stringURL]
+                                                                   placeholderImage:[UIImage imageNamed:@"coverbox_back.png"]
+                                                                          completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
+                                                                              if (error == nil){
+                                                                                  UIImage *buttonImage=[sf resizeImage:[sf imageWithBorderFromImage:image] width:76 height:66 padding:10];
+                                                                                  [sf setButtonImageAndStartDemo:buttonImage];
+                                                                              }
+                                                                          }];
+                                                 }
+                                                 else{
+                                                     __weak UIImageView *jV = jewelView;
+                                                     [jewelView
+                                                      setImageWithURL:[NSURL URLWithString:stringURL]
+                                                      placeholderImage:[UIImage imageNamed:@"coverbox_back.png"]
+                                                      completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {                                                          
+                                                          if (error == nil){
+                                                              jV.image=[sf imageWithBorderFromImage:image];
+                                                              UIImage *buttonImage=[sf resizeImage:jV.image width:76 height:66 padding:10];
+                                                              [sf setButtonImageAndStartDemo:buttonImage];
+                                                          }
+                                                      }];
+                                                 }
                                          }
-                                     }
-                                     else{
-                                         if (enableJewel){
-                                             [thumbnailView setImageWithURL:[NSURL URLWithString:stringURL] placeholderImage:[UIImage imageNamed:@"coverbox_back.png"] ];
-                                         }
-                                         else{
-                                             /* DISABLED due to issues: success comes also from others thread */
-                                             /*if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-                                              [jewelView
-                                              setImageWithURL:[NSURL URLWithString:stringURL]
-                                              placeholderImage:[UIImage imageNamed:@"coverbox_back.png"]
-                                              success:^(UIImage *image) {
-                                              jewelView.image = [self imageWithBorderFromImage:image];
-                                              }
-                                              failure:^(NSError *error) {
-                                              }
-                                              ];
-                                              }
-                                              else{
-                                              [jewelView
-                                              setImageWithURL:[NSURL URLWithString:stringURL]
-                                              placeholderImage:[UIImage imageNamed:@"coverbox_back.png"]
-                                              ];
-                                              } */
-                                             /* */
-                                             [jewelView
-                                              setImageWithURL:[NSURL URLWithString:stringURL]
-                                              placeholderImage:[UIImage imageNamed:@"coverbox_back.png"]
-                                              ];
-                                         }
-                                     }
-                                     if (nowPlayingHidden || startFlipDemo){
-                                         [playlistButton setImage:buttonImage forState:UIControlStateNormal];
-                                         [playlistButton setImage:buttonImage forState:UIControlStateHighlighted];
-                                         [playlistButton setImage:buttonImage forState:UIControlStateSelected];
-                                         if (startFlipDemo){
-                                             [NSTimer scheduledTimerWithTimeInterval:1.0f target:self selector:@selector(startFlipDemo) userInfo:nil repeats:NO];
-                                             startFlipDemo = NO;
-                                         }
-                                     }
-                                     
+                                     }];
                                  }
                                  lastThumbnail = stringURL;
                              }
@@ -918,9 +936,9 @@ int currentItemID;
 //                 albumTracksButton.hidden = NO;
 //                 artistDetailsButton.hidden = NO;
 //                 artistAlbumsButton.hidden = NO;
-                 labelSongCodec.text=@"codec";
-                 labelSongBitRate.text=@"bit rate";
-                 labelSongSampleRate.text=@"sample rate";
+                 labelSongCodec.text=NSLocalizedString(@"codec",nil);
+                 labelSongBitRate.text=NSLocalizedString(@"bit rate",nil);
+                 labelSongSampleRate.text=NSLocalizedString(@"sample rate",nil);
                  codec=[[methodResult objectForKey:@"MusicPlayer.Codec"] isEqualToString:@""] ? @"-" : [NSString stringWithFormat:@"%@", [methodResult objectForKey:@"MusicPlayer.Codec"]] ;
                  songCodec.text=codec;
                  
@@ -935,8 +953,8 @@ int currentItemID;
 //                 albumTracksButton.hidden = YES;
 //                 artistDetailsButton.hidden = YES;
 //                 artistAlbumsButton.hidden = YES;
-                 labelSongCodec.text=@"resolution";
-                 labelSongBitRate.text=@"aspect ratio";
+                 labelSongCodec.text=NSLocalizedString(@"resolution",nil);
+                 labelSongBitRate.text=NSLocalizedString(@"aspect ratio",nil);
                  labelSongSampleRate.text=@"";
                  
                  codec=[[methodResult objectForKey:@"VideoPlayer.VideoResolution"] isEqualToString:@""] ? @"-" : [NSString stringWithFormat:@"%@", [methodResult objectForKey:@"VideoPlayer.VideoResolution"]] ;
@@ -1097,7 +1115,7 @@ int currentItemID;
     jsonRPC = [[DSJSONRPC alloc] initWithServiceEndpoint:[NSURL URLWithString:serverJSON]];
     [jsonRPC callMethod:@"Playlist.GetItems" 
          withParameters:[NSDictionary dictionaryWithObjectsAndKeys: 
-                         [[NSArray alloc] initWithObjects:@"thumbnail", @"duration",@"artist", @"album", @"runtime", @"showtitle", @"season", @"episode",@"artistid", @"albumid", @"genre", @"tvshowid", nil], @"properties",
+                         [[NSArray alloc] initWithObjects:@"thumbnail", @"duration",@"artist", @"album", @"runtime", @"showtitle", @"season", @"episode",@"artistid", @"albumid", @"genre", @"tvshowid", @"file", nil], @"properties",
                          [NSNumber numberWithInt:playlistID], @"playlistid",
                          nil] 
            onCompletion:^(NSString *methodName, NSInteger callId, id methodResult, DSJSONRPCError *methodError, NSError* error) {
@@ -1106,7 +1124,6 @@ int currentItemID;
                    [playlistData performSelectorOnMainThread:@selector(removeAllObjects) withObject:nil waitUntilDone:YES];
                    [playlistTableView performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:YES];
                    if( [NSJSONSerialization isValidJSONObject:methodResult]){
-//                       NSLog(@"%@", methodResult);
                        NSArray *playlistItems = [methodResult objectForKey:@"items"];
                        total=[playlistItems count];
                        if (total==0){
@@ -1163,8 +1180,10 @@ int currentItemID;
                            NSString *thumbnail=[NSString stringWithFormat:@"%@",[[playlistItems objectAtIndex:i] objectForKey:@"thumbnail"]];
                            NSString *stringURL = [NSString stringWithFormat:@"http://%@%@", serverURL, [thumbnail stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]];
                            NSNumber *tvshowid =[NSNumber numberWithInt:[[NSString stringWithFormat:@"%@", [[playlistItems objectAtIndex:i]  objectForKey:@"tvshowid"]]intValue]];
+                           NSString *file=[NSString stringWithFormat:@"%@", [[playlistItems objectAtIndex:i] objectForKey:@"file"]];
                            [playlistData addObject:[NSMutableDictionary dictionaryWithObjectsAndKeys:
                                                     idItem, @"idItem",
+                                                    file, @"file",
                                                     label, @"label",
                                                     type,@"type",
                                                     artist, @"artist",
@@ -1380,9 +1399,9 @@ int currentItemID;
                          clearart = [art objectForKey:key];
                      }
                  }
-                 if ([art count] && [[art objectForKey:@"banner"] length]!=0 && [AppDelegate instance].serverVersion > 11 && [AppDelegate instance].obj.preferTVPosters == NO){
-                     thumbnailPath = [art objectForKey:@"banner"];
-                 }
+//                 if ([art count] && [[art objectForKey:@"banner"] length]!=0 && [AppDelegate instance].serverVersion > 11 && [AppDelegate instance].obj.preferTVPosters == NO){
+//                     thumbnailPath = [art objectForKey:@"banner"];
+//                 }
                  NSString *fanartPath = [videoLibraryMovieDetail objectForKey:@"fanart"];
                  NSString *fanartURL=@"";
                  NSString *stringURL = @"";
@@ -1478,10 +1497,10 @@ int currentItemID;
                          button.hidden = YES;
                          if (nowPlayingHidden){
                              UIImage *buttonImage;
-                             if ([self enableJewelCases]){
-                                 buttonImage=[self resizeImage:thumbnailView.image width:76 height:66 padding:10];
+                             if ([self enableJewelCases] && thumbnailView.image.size.width){
+                                 buttonImage=[self resizeImage:[self imageWithBorderFromImage:thumbnailView.image] width:76 height:66 padding:10];
                              }
-                             else{
+                             else if (jewelView.image.size.width){
                                  buttonImage=[self resizeImage:jewelView.image width:76 height:66 padding:10];
                              }
                              if (!buttonImage.size.width){
@@ -1727,10 +1746,10 @@ int currentItemID;
     if (playlistView.hidden == NO && self.view.superview != nil){
         NSString *playlistName=@"";
         if (playerID == 0){
-            playlistName=@"Music ";
+            playlistName=NSLocalizedString(@"Music ", nil);
         }
         else if (playerID == 1){
-            playlistName=@"Video ";
+            playlistName=NSLocalizedString(@"Video ", nil);
         }
         NSString *message=[NSString stringWithFormat:NSLocalizedString(@"Are you sure you want to clear the %@playlist?", nil), playlistName];
         UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:message message:nil delegate:self cancelButtonTitle:NSLocalizedString(@"Cancel", nil) otherButtonTitles:NSLocalizedString(@"Clear Playlist", nil), nil];
@@ -1812,12 +1831,21 @@ int currentItemID;
     }
 }
 
+-(void)changeAlphaView:(UIView *)view alpha:(float)value time:(float)sec{
+    [UIView beginAnimations:nil context:nil];
+	[UIView setAnimationDuration:sec];
+	view.alpha = value;
+    [UIView commitAnimations];
+}
+
 -(IBAction)stopUpdateProgressBar:(id)sender{
     updateProgressBar = FALSE;
+    [self changeAlphaView:scrabbingView alpha:1.0 time:0.3];
 }
 
 -(IBAction)startUpdateProgressBar:(id)sender{
     [self SimpleAction:@"Player.Seek" params:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:playerID], @"playerid", [NSNumber numberWithFloat:ProgressSlider.value], @"value", nil] reloadPlaylist:NO startProgressBar:YES];
+    [self changeAlphaView:scrabbingView alpha:0.0 time:0.3];
 }
 
 -(IBAction)updateCurrentTime:(id)sender{
@@ -1828,6 +1856,7 @@ int currentItemID;
         NSUInteger s = selectedTime % 60;
         NSString *displaySelectedTime=[NSString stringWithFormat:@"%@%02i:%02i", (globalSeconds < 3600) ? @"":[NSString stringWithFormat:@"%02i:", h], m, s];
         currentTime.text = displaySelectedTime;
+        scrabbingRate.text = NSLocalizedString(([NSString stringWithFormat:@"Scrubbing %@",[NSNumber numberWithFloat:ProgressSlider.scrubbingSpeed]]), nil);
     }
 }
 
@@ -1916,7 +1945,7 @@ int currentItemID;
             id objKey = [mainFields objectForKey:@"row6"];
             if ([AppDelegate instance].serverVersion>11 && [[parameters objectForKey:@"disableFilterParameter"] boolValue] == FALSE){
                 if ([[mainFields objectForKey:@"row6"] isEqualToString:@"artistid"]){ // WORKAROUND due the lack of the artistid with Playlist.GetItems
-                    NSString *artistFrodoWorkaround = [NSString stringWithFormat:@"%@", [item objectForKey:@"artist"]];
+                    NSString *artistFrodoWorkaround = [NSString stringWithFormat:@"%@", [[item objectForKey:@"artist"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
                     obj = [NSDictionary dictionaryWithObjectsAndKeys:artistFrodoWorkaround, @"artist", nil];
                 }
                 else{
@@ -1932,6 +1961,8 @@ int currentItemID;
                                             [item objectForKey:[mainFields objectForKey:@"row15"]], key,
                                             nil], @"parameters", [parameters objectForKey:@"label"], @"label",
                                            [parameters objectForKey:@"extra_info_parameters"], @"extra_info_parameters",
+                                           [NSDictionary dictionaryWithDictionary:[parameters objectForKey:@"itemSizes"]], @"itemSizes",
+                                           [NSString stringWithFormat:@"%d",[[parameters objectForKey:@"enableCollectionView"] boolValue]], @"enableCollectionView",
                                            nil];
             [[MenuItem.subItem mainParameters] replaceObjectAtIndex:choosedTab withObject:newParameters];
             MenuItem.subItem.chooseTab=choosedTab;
@@ -2000,20 +2031,9 @@ int currentItemID;
         [(UILabel*) [cell viewWithTag:3] setText:[item objectForKey:@"duration"]];
     if (playerID == 1)
         [(UILabel*) [cell viewWithTag:3] setText:[item objectForKey:@"runtime"]];
-    NSString *stringURL = [item objectForKey:@"thumbnail"];
-    if ((playlistTableView.decelerating == NO) || numResults<SHOW_ONLY_VISIBLE_THUMBNAIL_START_AT){
-        NSURL *imageUrl = [NSURL URLWithString: stringURL];    
-        UIImage *cachedImage = [manager imageWithURL:imageUrl];
-        if (cachedImage){
-            thumb.image = cachedImage;
-        }
-        else {    
-            [thumb setImageWithURL:[NSURL URLWithString:stringURL] placeholderImage:[UIImage imageNamed:@"nocover_music.png"] ];
-        }
-    }
-    else {
-        thumb.image = [UIImage imageNamed:@"nocover_music.png"];  
-    }
+    NSString *stringURL = [item objectForKey:@"thumbnail"]; 
+    [thumb setImageWithURL:[NSURL URLWithString:stringURL] placeholderImage:[UIImage imageNamed:@"nocover_music.png"]];
+    // andResize:CGSizeMake(thumb.frame.size.width, thumb.frame.size.height)
     UIView *timePlaying = (UIView*) [cell viewWithTag:5];
     if (timePlaying.hidden == NO){
         [self fadeView:timePlaying hidden:YES];
@@ -2099,8 +2119,19 @@ int currentItemID;
 - (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
     
     NSDictionary *objSource = [playlistData objectAtIndex:sourceIndexPath.row];
-        
+    NSDictionary *itemToMove;
+    
     int idItem=[[objSource objectForKey:@"idItem"] intValue];
+    if (idItem){
+        itemToMove = [NSDictionary dictionaryWithObjectsAndKeys:
+                      [NSNumber numberWithInt:idItem], [NSString stringWithFormat:@"%@id", [objSource objectForKey:@"type"]],
+                      nil];
+    }
+    else{
+        itemToMove = [NSDictionary dictionaryWithObjectsAndKeys:
+                      [objSource objectForKey:@"file"], @"file",
+                      nil];
+    }
     
     NSString *action1=@"Playlist.Remove";
     NSDictionary *params1=[NSDictionary dictionaryWithObjectsAndKeys:
@@ -2110,9 +2141,7 @@ int currentItemID;
     NSString *action2=@"Playlist.Insert";
     NSDictionary *params2=[NSDictionary dictionaryWithObjectsAndKeys:
                           [NSNumber numberWithInt:playerID], @"playlistid",
-                          [NSDictionary dictionaryWithObjectsAndKeys: 
-                           [NSNumber numberWithInt:idItem], [NSString stringWithFormat:@"%@id", [objSource objectForKey:@"type"]], 
-                           nil],@"item",
+                          itemToMove, @"item",
                           [NSNumber numberWithInt:destinationIndexPath.row],@"position",
                           nil];
     jsonRPC = nil;
@@ -2218,45 +2247,6 @@ int currentItemID;
     }
 }
 
-#pragma mark -
-#pragma mark Deferred image loading (UIScrollViewDelegate)
-
-- (void)loadImagesForOnscreenRows{
-    if ([playlistData count] > 0 && numResults>=SHOW_ONLY_VISIBLE_THUMBNAIL_START_AT){
-        NSArray *visiblePaths = [playlistTableView indexPathsForVisibleRows];
-        NSString *defaultThumb=@"nocover_music.png";
-        for (NSIndexPath *indexPath in visiblePaths){
-            UITableViewCell *cell = [playlistTableView cellForRowAtIndexPath:indexPath];
-            UIImageView *thumb=(UIImageView*) [cell viewWithTag:4];
-            NSDictionary *item = [playlistData objectAtIndex:indexPath.row];
-            NSString *stringURL = [item objectForKey:@"thumbnail"];
-            NSURL *imageUrl = [NSURL URLWithString: stringURL];    
-            UIImage *cachedImage = [manager imageWithURL:imageUrl];
-            NSString *displayThumb=defaultThumb;
-            if ([[item objectForKey:@"filetype"] length]!=0){
-                displayThumb=stringURL;
-            }
-            if (cachedImage){
-                thumb.image=cachedImage;
-            }
-            else {            
-                [thumb setImageWithURL:[NSURL URLWithString:stringURL] placeholderImage:[UIImage imageNamed:displayThumb]];
-            }
-        }
-    }
-}
-// Load images for all onscreen rows when scrolling is finished
-- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
-    if (!decelerate && numResults>=SHOW_ONLY_VISIBLE_THUMBNAIL_START_AT){
-        [self loadImagesForOnscreenRows];
-    }
-}
-
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
-    if (numResults>=SHOW_ONLY_VISIBLE_THUMBNAIL_START_AT){
-        [self loadImagesForOnscreenRows];
-    }
-}
 # pragma  mark - Swipe Gestures
 
 - (void)handleSwipeFromRight:(id)sender {
@@ -2494,8 +2484,11 @@ int currentItemID;
 
 - (void)viewDidLoad{
     [super viewDidLoad];
+//    imageCache = [SDImageCache.alloc initWithNamespace:@"default"];
+    [scrabbingMessage setText:NSLocalizedString(@"Slide your finger up to adjust the scrubbing rate.", nil)];
+    [scrabbingRate setText:NSLocalizedString(@"Scrubbing 1", nil)];
     sheetActions = [[NSMutableArray alloc] init];
-    [[SDImageCache sharedImageCache] clearMemory];
+//    [[SDImageCache sharedImageCache] clearMemory];
     playerID = -1;
     selectedPlayerID = -1;
     lastSelected = -1;
@@ -2549,6 +2542,9 @@ int currentItemID;
 
 - (void)viewDidUnload{
     playlistLeftShadow = nil;
+    scrabbingView = nil;
+    scrabbingMessage = nil;
+    scrabbingRate = nil;
     [super viewDidUnload];
     [[NSNotificationCenter defaultCenter] removeObserver: self];
     volumeSliderView = nil;

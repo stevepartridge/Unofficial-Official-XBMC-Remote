@@ -16,6 +16,7 @@
 #import "HostManagementViewController.h"
 #import "AppInfoViewController.h"
 #import "XBMCVirtualKeyboard.h"
+#import "ClearCacheView.h"
 
 #define CONNECTION_TIMEOUT 240.0f
 #define SERVER_TIMEOUT 2.0f
@@ -104,70 +105,18 @@
     [[AppDelegate instance] wake:macAddress];
 }
 
--(void)checkServer{
-    jsonRPC=nil;
-    if ([[AppDelegate instance].obj.serverIP length]==0){
-        if (firstRun){
-            [self showSetup:YES];
-        }
-        if ([AppDelegate instance].serverOnLine){
-            [self changeServerStatus:NO infoText:NSLocalizedString(@"No connection", nil)];
-        }
-        return;
-    }
-    NSString *userPassword=[[AppDelegate instance].obj.serverPass isEqualToString:@""] ? @"" : [NSString stringWithFormat:@":%@", [AppDelegate instance].obj.serverPass];
-    NSString *serverJSON=[NSString stringWithFormat:@"http://%@%@@%@:%@/jsonrpc", [AppDelegate instance].obj.serverUser, userPassword, [AppDelegate instance].obj.serverIP, [AppDelegate instance].obj.serverPort];
-    jsonRPC = [[DSJSONRPC alloc] initWithServiceEndpoint:[NSURL URLWithString:serverJSON]];
-    [jsonRPC 
-     callMethod:@"Application.GetProperties" 
-     withParameters:checkServerParams
-     withTimeout: SERVER_TIMEOUT
-     onCompletion:^(NSString *methodName, NSInteger callId, id methodResult, DSJSONRPCError *methodError, NSError* error) {
-         if (error==nil && methodError==nil){
-             [AppDelegate instance].serverVolume = [[methodResult objectForKey:@"volume"] intValue];
-             if (![AppDelegate instance].serverOnLine){
-                 if( [NSJSONSerialization isValidJSONObject:methodResult]){
-                     [volumeSliderView startTimer];
-                     NSDictionary *serverInfo=[methodResult objectForKey:@"version"];
-                     [AppDelegate instance].serverVersion=[[serverInfo objectForKey:@"major"] intValue];
-                     NSString *infoTitle=[NSString stringWithFormat:@"%@ v%@.%@ %@", [AppDelegate instance].obj.serverDescription, [serverInfo objectForKey:@"major"], [serverInfo objectForKey:@"minor"], [serverInfo objectForKey:@"tag"]];//, [serverInfo objectForKey:@"revision"]
-                     [self changeServerStatus:YES infoText:infoTitle];
-                     [self showSetup:NO];
-                 }
-                 else{
-                     if ([AppDelegate instance].serverOnLine){
-                         [self changeServerStatus:NO infoText:NSLocalizedString(@"No connection", nil)];
-                     }
-                     if (firstRun){
-                         [self showSetup:YES];
-                     }
-                 }
-             }
-         }
-         else {
-             //             NSLog(@"ERROR %@ %@",error, methodError);
-             if ([AppDelegate instance].serverOnLine){
-                 //                 NSLog(@"mi spengo");
-                 [self changeServerStatus:NO infoText:NSLocalizedString(@"No connection", nil)];
-             }
-             if (firstRun){
-                 [self showSetup:YES];
-             }
-         }
-     }];
-    jsonRPC=nil;
-}
-
 -(void)changeServerStatus:(BOOL)status infoText:(NSString *)infoText{
     if (status==YES){
         [self.tcpJSONRPCconnection startNetworkCommunicationWithServer:[AppDelegate instance].obj.serverIP serverPort:[AppDelegate instance].obj.tcpPort];
+        [[NSNotificationCenter defaultCenter] postNotificationName: @"XBMCServerConnectionSuccess" object: nil];
+        [AppDelegate instance].serverOnLine=YES;
+        [AppDelegate instance].serverName = infoText;
+
+        [volumeSliderView startTimer];
         UITableViewCell *cell = [menuViewController.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
         UIImageView *icon = (UIImageView*) [cell viewWithTag:1];
         [icon setImage:[UIImage imageNamed:@"connection_on"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName: @"XBMCServerConnectionSuccess" object: nil];
-//        xbmcLogo.alpha = .9f;
         [xbmcInfo setTitle:infoText forState:UIControlStateNormal];
-        [AppDelegate instance].serverOnLine=YES;
         int n = [menuViewController.tableView numberOfRowsInSection:0];
         for (int i=1;i<n;i++){
             UITableViewCell *cell = [menuViewController.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:i inSection:0]];
@@ -183,16 +132,15 @@
         }
     }
     else{
-        if (self.tcpJSONRPCconnection != nil){
-            [tcpJSONRPCconnection stopNetworkCommunication];
-        }
+        [self.tcpJSONRPCconnection stopNetworkCommunication];
+        [[NSNotificationCenter defaultCenter] postNotificationName: @"XBMCServerConnectionFailed" object:nil userInfo:nil];
+        [AppDelegate instance].serverOnLine=NO;
+        [AppDelegate instance].serverName = infoText;
+
         UITableViewCell *cell = [menuViewController.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
         UIImageView *icon = (UIImageView*) [cell viewWithTag:1];
         [icon setImage:[UIImage imageNamed:@"connection_off"]];
-//        xbmcLogo.alpha = .4f;
-        [[NSNotificationCenter defaultCenter] postNotificationName: @"XBMCServerConnectionFailed" object:nil userInfo:nil];
         [xbmcInfo setTitle:infoText forState:UIControlStateNormal];
-        [AppDelegate instance].serverOnLine=NO;
         int n = [menuViewController.tableView numberOfRowsInSection:0];
         for (int i=1;i<n;i++){
             UITableViewCell *cell = [menuViewController.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:i inSection:0]];
@@ -256,15 +204,6 @@
                                     initWithContentViewController:[AppDelegate instance].navigationController];
         self.serverPickerPopover.delegate = self;
         [self.serverPickerPopover setPopoverContentSize:CGSizeMake(320, 436)];
-        NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-        int lastServer;
-        if ([userDefaults objectForKey:@"lastServer"]!=nil){
-            lastServer=[[userDefaults objectForKey:@"lastServer"] intValue];
-            if (lastServer>-1){
-                NSIndexPath *lastServerIndexPath=[NSIndexPath indexPathForRow:lastServer inSection:0];
-                [self.hostPickerViewController selectIndex:lastServerIndexPath reloadData:NO];
-            }
-        }    
     }
     [self.serverPickerPopover presentPopoverFromRect:xbmcInfo.frame inView:self.view permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
 }
@@ -400,6 +339,28 @@
     }
 }
 
+#pragma mark - App clear disk cache methods
+
+-(void)startClearAppDiskCache:(ClearCacheView *)clearView{
+    [[AppDelegate instance] clearAppDiskCache];
+    [self performSelectorOnMainThread:@selector(clearAppDiskCacheFinished:) withObject:clearView waitUntilDone:YES];
+}
+
+-(void)clearAppDiskCacheFinished:(ClearCacheView *)clearView{
+    [UIView animateWithDuration:0.3
+                     animations:^{
+                         [clearView stopActivityIndicator];
+                         clearView.alpha = 0;
+                     }
+                     completion:^(BOOL finished){
+                         [clearView stopActivityIndicator];
+                         [clearView removeFromSuperview];
+                         NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+                         [userDefaults synchronize];
+                         [userDefaults removeObjectForKey:@"clearcache_preference"];
+                     }];
+}
+
 #pragma mark - Lifecycle
 
 - (void)viewDidLoad{
@@ -409,23 +370,7 @@
     [self.view addSubview:virtualKeyboard];
     firstRun=YES;
     [AppDelegate instance].obj=[GlobalData getInstance]; 
-    
-    self.hostPickerViewController = [[HostManagementViewController alloc] initWithNibName:@"HostManagementViewController" bundle:nil];
-    [AppDelegate instance].navigationController = [[UINavigationController alloc] initWithRootViewController:_hostPickerViewController];
-    self.serverPickerPopover = [[UIPopoverController alloc] 
-                                initWithContentViewController:[AppDelegate instance].navigationController];
-    self.serverPickerPopover.delegate = self;
-    [self.serverPickerPopover setPopoverContentSize:CGSizeMake(320, 436)];
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    int lastServer;
-    if ([userDefaults objectForKey:@"lastServer"]!=nil){
-        lastServer=[[userDefaults objectForKey:@"lastServer"] intValue];
-        if (lastServer>-1){
-            NSIndexPath *lastServerIndexPath=[NSIndexPath indexPathForRow:lastServer inSection:0];
-            [self.hostPickerViewController selectIndex:lastServerIndexPath reloadData:NO];
-            [self handleXBMCServerHasChanged:nil];
-        }
-    }
+
     int cellHeight = 56;
     int infoHeight = 22;
     int tableHeight = ([(NSMutableArray *)mainMenu count] - 1) * cellHeight + infoHeight;
@@ -513,8 +458,8 @@
     frame.origin.y=self.view.frame.size.height - 170;
     volumeSliderView.frame=frame;
     CGAffineTransform trans = CGAffineTransformMakeRotation(M_PI * 0.5);
-    volumeSliderView.transform = trans;    
-    [self.view addSubview:volumeSliderView]; 
+    volumeSliderView.transform = trans;
+    [self.view addSubview:volumeSliderView];
     
     xbmcInfo = [[UIButton alloc] initWithFrame:CGRectMake(428, 966, 190, 33)]; //225
     [xbmcInfo setTitle:NSLocalizedString(@"No connection", nil) forState:UIControlStateNormal];
@@ -543,9 +488,15 @@
     frame.origin.x = self.nowPlayingController.ProgressSlider.frame.origin.x + 300;
     self.nowPlayingController.ProgressSlider.frame=frame;
     
-    checkServerParams=[NSDictionary dictionaryWithObjectsAndKeys: [[NSArray alloc] initWithObjects:@"version", @"volume", nil], @"properties", nil];
-    timer = [NSTimer scheduledTimerWithTimeInterval:SERVER_TIMEOUT target:self selector:@selector(checkServer) userInfo:nil repeats:YES];
-    
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    [userDefaults synchronize];
+    BOOL clearCache=[[userDefaults objectForKey:@"clearcache_preference"] boolValue];
+    if (clearCache==YES){
+        ClearCacheView *clearView = [[ClearCacheView alloc] initWithFrame:self.view.frame];
+        [clearView startActivityIndicator];
+        [self.view addSubview:clearView];
+        [NSThread detachNewThreadSelector:@selector(startClearAppDiskCache:) toTarget:self withObject:clearView];
+    }
     [[NSNotificationCenter defaultCenter] addObserver: self
                                              selector: @selector(handleXBMCServerHasChanged:)
                                                  name: @"XBMCServerHasChanged"
@@ -572,6 +523,37 @@
                                              selector: @selector(handleEnterForeground:)
                                                  name: @"UIApplicationWillEnterForegroundNotification"
                                                object: nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver: self
+                                             selector: @selector(handleTcpJSONRPCShowSetup:)
+                                                 name: @"TcpJSONRPCShowSetup"
+                                               object: nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver: self
+                                             selector: @selector(handleTcpJSONRPCChangeServerStatus:)
+                                                 name: @"TcpJSONRPCChangeServerStatus"
+                                               object: nil];
+    
+    self.hostPickerViewController = [[HostManagementViewController alloc] initWithNibName:@"HostManagementViewController" bundle:nil];
+    [AppDelegate instance].navigationController = [[UINavigationController alloc] initWithRootViewController:_hostPickerViewController];
+    self.serverPickerPopover = [[UIPopoverController alloc]
+                                initWithContentViewController:[AppDelegate instance].navigationController];
+    self.serverPickerPopover.delegate = self;
+    [self.serverPickerPopover setPopoverContentSize:CGSizeMake(320, 436)];
+
+}
+
+-(void)handleTcpJSONRPCShowSetup:(NSNotification *)sender{
+    BOOL showValue = [[[sender userInfo] valueForKey:@"showSetup"] boolValue];
+    if ((showValue && firstRun) || !showValue){
+        [self showSetup:showValue];
+    }
+}
+
+-(void)handleTcpJSONRPCChangeServerStatus:(NSNotification*) sender{
+    BOOL statusValue = [[[sender userInfo] valueForKey:@"status"] boolValue];
+    NSString *message = [[sender userInfo] valueForKey:@"message"];
+    [self changeServerStatus:statusValue infoText:message];
 }
 
 - (void)handleStackScrollOnScreen: (NSNotification*) sender{
@@ -603,15 +585,18 @@
 }
 
 - (void) handleWillResignActive: (NSNotification*) sender{
-    [tcpJSONRPCconnection stopNetworkCommunication];
+    [self.tcpJSONRPCconnection stopNetworkCommunication];
 }
 
 - (void) handleDidEnterBackground: (NSNotification*) sender{
-    [tcpJSONRPCconnection stopNetworkCommunication];
+    [self.tcpJSONRPCconnection stopNetworkCommunication];
 }
 
 - (void) handleEnterForeground: (NSNotification*) sender{
     if ([AppDelegate instance].serverOnLine == YES){
+        if (self.tcpJSONRPCconnection == nil){
+            self.tcpJSONRPCconnection = [[tcpJSONRPC alloc] init];
+        }
         [self.tcpJSONRPCconnection startNetworkCommunicationWithServer:[AppDelegate instance].obj.serverIP serverPort:[AppDelegate instance].obj.tcpPort];
     }
 }
