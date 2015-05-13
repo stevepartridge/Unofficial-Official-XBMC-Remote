@@ -69,7 +69,7 @@
         
         NSString *macAddress = [[[AppDelegate instance].arrayServerList objectAtIndex:idx.row] objectForKey:@"serverMacAddress"];
         NSArray *mac_octect = [macAddress componentsSeparatedByString:@":"];
-        int num_octects = [mac_octect count];
+        NSInteger num_octects = [mac_octect count];
         if (num_octects>0) mac_0_UI.text = [mac_octect objectAtIndex:0];
         if (num_octects>1) mac_1_UI.text = [mac_octect objectAtIndex:1];
         if (num_octects>2) mac_2_UI.text = [mac_octect objectAtIndex:2];
@@ -92,6 +92,18 @@
 - (IBAction) dismissView:(id)sender{
     
     [self textFieldDoneEditing:nil];
+    
+    if (descriptionUI.text == nil) descriptionUI.text = @"";
+    if (usernameUI.text == nil) usernameUI.text = @"";
+    if (passwordUI.text == nil) passwordUI.text = @"";
+    if (ipUI.text == nil) ipUI.text = @"";
+    if (portUI.text == nil) portUI.text = @"";
+    if (tcpPortUI.text == nil) tcpPortUI.text = @"";
+    if (mac_0_UI.text == nil) mac_0_UI.text = @"";
+    if (mac_1_UI.text == nil) mac_1_UI.text = @"";
+    if (mac_2_UI.text == nil) mac_2_UI.text = @"";
+    if (mac_3_UI.text == nil) mac_3_UI.text = @"";
+
     NSString *macAddress = [NSString stringWithFormat:@"%@:%@:%@:%@:%@:%@", mac_0_UI.text, mac_1_UI.text, mac_2_UI.text, mac_3_UI.text, mac_4_UI.text, mac_5_UI.text];
     if (self.detailItem==nil){
         [[AppDelegate instance].arrayServerList addObject:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -221,7 +233,7 @@
 
 - (void)updateUI{
     if(!searching){
-        int j = [services  count];
+        NSInteger j = [services  count];
         if (j==1){
             [self resolveIPAddress:[services objectAtIndex:0]];
         }
@@ -265,7 +277,7 @@
                 [ipUI setTextColor:[UIColor blueColor]];
                 [portUI setTextColor:[UIColor blueColor]];
 
-                [self AnimView:discoveredInstancesView AnimDuration:0.3 Alpha:1.0 XPos:320];
+                [self AnimView:discoveredInstancesView AnimDuration:0.3 Alpha:1.0 XPos:self.view.frame.size.width];
 
             }
         }
@@ -283,8 +295,8 @@
     [activityIndicatorView startAnimating];
     [services removeAllObjects];
     startDiscover.enabled = NO;
-    [self AnimLabel:noInstances AnimDuration:0.3 Alpha:0.0 XPos:320];
-    [self AnimView:discoveredInstancesView AnimDuration:0.3 Alpha:1.0 XPos:320];
+    [self AnimLabel:noInstances AnimDuration:0.3 Alpha:0.0 XPos:self.view.frame.size.width];
+    [self AnimView:discoveredInstancesView AnimDuration:0.3 Alpha:1.0 XPos:self.view.frame.size.width];
 
     searching = NO;
     [netServiceBrowser setDelegate:self];
@@ -342,8 +354,44 @@
 }
 
 - (void)viewDidLoad{
-    
     [super viewDidLoad];
+    [descriptionLabel setText:NSLocalizedString(@"Description", nil)];
+    [hostLabel setText:NSLocalizedString(@"Host : port /\nTCP port", nil)];
+    [macLabel setText:NSLocalizedString(@"MAC Address", nil)];
+    [userLabel setText:NSLocalizedString(@"Username and Password", nil)];
+    [preferLabel setText:NSLocalizedString(@"Prefer posters for TV shows", nil)];
+    [noInstancesLabel setText:NSLocalizedString(@"No XBMC instances were found :(", nil)];
+    [findLabel setText:NSLocalizedString(@"\"Find XBMC\" requires XBMC server option\n\"Announce these services to other systems via Zeroconf\" enabled", nil)];
+    [howtoLabel setText:NSLocalizedString(@"How-to actvate the remote app in XBMC", nil)];
+    [howtoEdenLabel setText:NSLocalizedString(@"Eden\nSettings -> Network -> Allow control of XBMC via HTTP", nil)];
+    [howtoLaterLabel setText:NSLocalizedString(@"Frodo / Gotham\nSettings -> Services -> Web Server -> Allow control of XBMC via HTTP", nil)];
+    
+    [startDiscover setTitle:NSLocalizedString(@"Find XBMC", nil) forState:UIControlStateNormal];
+    startDiscover.titleLabel.numberOfLines = 1;
+    startDiscover.titleLabel.adjustsFontSizeToFitWidth = YES;
+    startDiscover.titleLabel.lineBreakMode = NSLineBreakByClipping;
+    UIImage *buttonEdit = [UIImage imageNamed:@"button_edit"];
+    UIEdgeInsets insets = UIEdgeInsetsMake(0.0f, 16.0f, 0.0f, 16.0f);
+    buttonEdit = [buttonEdit resizableImageWithCapInsets:insets];
+    [startDiscover setBackgroundImage:buttonEdit forState:UIControlStateNormal];
+    UIImage *buttonEditSelected = [UIImage imageNamed:@"button_edit_highlight"];
+    buttonEditSelected = [buttonEditSelected resizableImageWithCapInsets:insets];
+    [startDiscover setBackgroundImage:buttonEditSelected forState:UIControlStateSelected];
+    [startDiscover setBackgroundImage:buttonEditSelected forState:UIControlStateHighlighted];
+    
+    UIImage *buttonSave = [UIImage imageNamed:@"button_edit_down.png"];
+    buttonSave = [buttonSave resizableImageWithCapInsets:insets];
+    [saveButton setBackgroundImage:buttonSave forState:UIControlStateNormal];
+    [saveButton setTitle:NSLocalizedString(@"Save", nil) forState:UIControlStateNormal];
+    
+    [descriptionUI setPlaceholder:NSLocalizedString(@"e.g. My XBMC", nil)];
+    [ipUI setPlaceholder:NSLocalizedString(@"e.g. 192.168.0.8", nil)];
+    [usernameUI setPlaceholder:NSLocalizedString(@"Username", nil)];
+    [passwordUI setPlaceholder:NSLocalizedString(@"Password", nil)];
+    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")){
+        self.edgesForExtendedLayout = 0;
+    }
+    [discoveredInstancesTableView setBackgroundColor:[UIColor whiteColor]];
     services = [[NSMutableArray alloc] init];
     netServiceBrowser = [[NSNetServiceBrowser alloc] init];
     UISwipeGestureRecognizer *rightSwipe = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFromRight:)];

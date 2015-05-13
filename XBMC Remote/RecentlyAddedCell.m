@@ -36,12 +36,14 @@
         _posterFanart = [[UIImageView alloc] initWithFrame:CGRectMake(startX, borderWidth, fanartWidth - borderWidth * 3, frame.size.height - borderWidth * 2)];
         [_posterFanart setAutoresizingMask:UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin];
         [_posterFanart setClipsToBounds:YES];
-        [_posterFanart setContentMode:UIViewContentModeScaleAspectFit];
+        [_posterFanart setContentMode:UIViewContentModeScaleAspectFill];
         _posterFanart.alpha = 0.9f;
         [self.contentView addSubview:_posterFanart];
 
         int frameHeight = labelHeight + genreHeight + yearHeight - borderWidth*2;
         UIImageView *labelImageView = [[UIImageView alloc] initWithFrame:CGRectMake(startX, frame.size.height - genreHeight - yearHeight - labelHeight + borderWidth*2, fanartWidth - borderWidth * 3, labelHeight + genreHeight + yearHeight - borderWidth*3)];
+        [labelImageView setAutoresizingMask:UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin];
+
         [labelImageView setImage:[UIImage imageNamed:@"cell_bg"]];
         [labelImageView setHighlightedImage:[UIImage imageNamed:@"cell_bg_selected"]];
         
@@ -80,6 +82,12 @@
         [labelImageView addSubview:_posterYear];
         [self.contentView addSubview:labelImageView];
 
+        _busyView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+        _busyView.hidesWhenStopped = YES;
+        _busyView.center = CGPointMake(frame.size.width / 2 + _posterThumbnail.frame.size.width / 2 + borderWidth / 2, (frame.size.height / 2) - borderWidth);
+        _busyView.tag = 8;
+        [self.contentView addSubview:_busyView];
+        
         UIView *bgView = [[UIView alloc] initWithFrame:frame];
         [bgView setBackgroundColor:[UIColor colorWithRed:0.0f green:132.0f/255.0f blue:1.0f alpha:1]];
         self.selectedBackgroundView = bgView;
@@ -91,7 +99,7 @@
     if (enable == YES){
         if (overlayWatched == nil){
             overlayWatched = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"OverlayWatched"]];
-            [overlayWatched setAutoresizingMask: UIViewAutoresizingFlexibleLeftMargin  | UIViewAutoresizingFlexibleBottomMargin];
+            [overlayWatched setAutoresizingMask: UIViewAutoresizingFlexibleLeftMargin  | UIViewAutoresizingFlexibleTopMargin];
             overlayWatched.frame = CGRectMake(self.contentView.frame.size.width - overlayWatched.frame.size.width - 4,
                                               self.contentView.frame.size.height - overlayWatched.frame.size.height - 4,
                                               overlayWatched.frame.size.width,

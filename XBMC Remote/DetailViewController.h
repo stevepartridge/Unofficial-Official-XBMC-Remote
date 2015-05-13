@@ -18,6 +18,7 @@
 #import "Utilities.h"
 #import "BDKCollectionIndexView.h"
 #import "FloatingHeaderFlowLayout.h"
+#import "MessagesView.h"
 
 @class NowPlaying;
 @class PlayFileViewController;
@@ -68,13 +69,16 @@
     BOOL albumView;
     BOOL episodesView;
     BOOL tvshowsView;
+    BOOL channelGuideView;
     int albumViewHeight;
     int albumViewPadding;
     int artistFontSize;
     int albumFontSize;
     int trackCountFontSize;
     int trackCountLabelWidth;
+    int epgChannelTimeLabelWidth;
     int labelPadding;
+    int sectionHeight;
     UIColor *albumColor;
     UIColor *searchBarColor;
     UIColor *tableViewSearchBarColor;
@@ -85,6 +89,8 @@
     BOOL enableCollectionView;
     int cellGridWidth;
     int cellGridHeight;
+    int fullscreenCellGridWidth;
+    int fullscreenCellGridHeight;
     int cellMinimumLineSpacing;
     id activeLayoutView;
     UILongPressGestureRecognizer *longPressGesture;
@@ -101,6 +107,28 @@
     BOOL enableDiskCache;
     BOOL blackTableSeparator;
     NSString *currentCollectionViewName;
+    CGFloat iOSYDelta;
+    __weak IBOutlet UIImageView *buttonsViewBgImage;
+    __weak IBOutlet UIToolbar *buttonsViewBgToolbar;
+    BOOL isViewDidLoad;
+    BOOL hideSearchBarActive;
+    BOOL enableIpadWA;
+    BOOL forceMusicAlbumMode;
+    NSMutableDictionary *epgDict;
+    NSMutableArray *epgDownloadQueue;
+    NSDateFormatter *xbmcDateFormatter;
+    NSDateFormatter *localHourMinuteFormatter;
+    NSIndexPath *autoScrollTable;
+    MessagesView *messagesView;
+    __weak IBOutlet UILabel *noItemsLabel;
+    BOOL stackscrollFullscreen;
+    BOOL forceCollection;
+    NSMutableDictionary *storeSections;
+    NSArray *storeSectionArray;
+    UIButton *fullscreenButton;
+    UIView *titleView;
+    BOOL hiddenLabel;
+    UIPinchGestureRecognizer *twoFingerPinch;
 }
 
 - (id)initWithFrame:(CGRect)frame;

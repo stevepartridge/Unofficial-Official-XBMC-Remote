@@ -12,8 +12,6 @@
 
 @implementation UISearchBarLeftButton
 
-static CGRect initialTextFieldFrame;
-
 - (id)initWithFrame:(CGRect)frame{
     self = [super initWithFrame:frame];
     if (self) {
@@ -31,6 +29,7 @@ static CGRect initialTextFieldFrame;
 }
 
 -(void)configureView{
+    self.isVisible = YES;
     self.leftPadding = 0;
     self.rightPadding = 0;
     float buttonWidth = 44;
@@ -55,10 +54,7 @@ static CGRect initialTextFieldFrame;
 
 - (void) layoutSubviews {
     [super layoutSubviews];
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        initialTextFieldFrame = self.textField.frame;
-    });
+    if (!self.isVisible) return;
     self.leftButton.alpha = 0;
     self.viewLabel.alpha = 0;
     if (self.showsCancelButton == YES){
@@ -80,14 +76,17 @@ static CGRect initialTextFieldFrame;
     }
 }
 
--(void)updateTextFieldFrame:(float)rightMargin leftPadding:(float)leftMargin{
+-(void)updateTextFieldFrame:(float)rightMargin leftPadding:(float)leftMargin {
     int originX = self.textField.frame.origin.x + leftMargin;
-    int width = initialTextFieldFrame.size.width - leftMargin - rightMargin;
+    int width = self.frame.size.width - 16 - leftMargin - rightMargin;
     CGRect newFrame = CGRectMake (originX,
                                   self.textField.frame.origin.y,
                                   width,
                                   self.textField.frame.size.height);
     self.textField.frame = newFrame;
+    newFrame = self.frame;
+    newFrame.size.width = self.storeWidth;
+    self.frame = newFrame;
 }
 
 -(UITextField *)textField{
@@ -95,13 +94,21 @@ static CGRect initialTextFieldFrame;
         if ([view isKindOfClass: [UITextField class]]){
             return (UITextField *)view;
         }
+        else if ([view isKindOfClass:[UIView class]]){
+            for (UIView *view2 in view.subviews) {
+                if ([view2 isKindOfClass: [UITextField class]]){
+                    return (UITextField *)view2;
+                }
+            }
+        }
     }
     return nil;
 }
 
 - (void)drawRect:(CGRect)rect{
-    if ([self.delegate respondsToSelector:@selector(handleChangeLibraryView)]){
-        [self.leftButton addTarget:self.delegate action:@selector(handleChangeLibraryView) forControlEvents:UIControlEventTouchUpInside];
+    SEL selector = NSSelectorFromString(@"handleChangeLibraryView");
+    if ([self.delegate respondsToSelector:selector]){
+        [self.leftButton addTarget:self.delegate action:selector forControlEvents:UIControlEventTouchUpInside];
     }
 }
 

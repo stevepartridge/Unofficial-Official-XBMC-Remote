@@ -104,7 +104,13 @@
     __weak IBOutlet UIView *scrabbingView;
     __weak IBOutlet UILabel *scrabbingMessage;
     __weak IBOutlet UILabel *scrabbingRate;
-//    SDImageCache *imageCache;
+    UIView *iOS7bgEffect;
+    UIView *iOS7navBarEffect;
+    UIColor *foundEffectColor;
+    NSString *pg_thumb_name;
+    UISegmentedControl *playlistSegmentedControl;
+    UIColor *cellBackgroundColor;
+    __weak IBOutlet UILabel *noItemsLabel;
 }
 
 - (void)setToolbarWidth:(int)width height:(int)height YPOS:(int)YPOS playBarWidth:(int)playBarWidth portrait:(BOOL)isPortrait;
